@@ -1,0 +1,21 @@
+{
+    "status": {
+        "type": "online"
+    },
+    "rpcState": {
+        "type": "PLAYING",
+        "name": "Vertex Z",
+        "details": "Vertex Z😎",
+        "state": ".gg/hCTCQwPKd3",
+        "url": "https://vertex-z.onrender.com/",
+        "timestamps": {
+            "start": 0
+        },
+        "assets": {
+            "largeImage": "https://voidy-script.neocities.org/A74D532B-80C7-477E-9A52-7530F064A105_Original.png",
+            "largeText": "VZ",
+            "smallImage": "https://yt3.ggpht.com/U7vsXdIIT5FjGW94jF-bAB8CN0FQ8BbBB_xRDI1LsTqZPpVkRPpQzxdYyjVcVNVoqzEG5Y_UMQ=s240-c-k-c0x00ffffff-no-rj",
+            "smallText": "VZ"
+        }
+    }
+}
