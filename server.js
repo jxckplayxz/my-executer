@@ -8,7 +8,6 @@ const app = express();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Simple frontend - form
 app.get('/', (req, res) => {
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   res.send(`<!doctype html>
@@ -32,16 +31,13 @@ app.get('/', (req, res) => {
 </html>`);
 });
 
-// Form handler: redirect to proxied fetch
 app.post('/open', (req, res) => {
   const { url, referrer } = req.body;
   if (!url || !referrer) return res.status(400).send('Missing url or referrer.');
-  // redirect to the proxy path with both params encoded
   const prox = '/proxy?url=' + encodeURIComponent(url) + '&ref=' + encodeURIComponent(referrer);
   res.redirect(prox);
 });
 
-// Proxy endpoint
 app.get('/proxy', async (req, res) => {
   const target = req.query.url;
   const ref = req.query.ref || '';
@@ -51,7 +47,6 @@ app.get('/proxy', async (req, res) => {
   try { parsed = new URL(target); } catch (e) { return res.status(400).send('Invalid URL.'); }
 
   try {
-    // forward headers as needed; set Referer header to the chosen referrer
     const response = await fetch(target, {
       headers: {
         'User-Agent': req.headers['user-agent'] || 'Referrer-Proxy/1.0',
@@ -61,14 +56,11 @@ app.get('/proxy', async (req, res) => {
       compress: true
     });
 
-    // Get content type
     const contentType = response.headers.get('content-type') || '';
-    // For HTML, rewrite resource URLs so subsequent requests route back through this proxy
     if (contentType.includes('text/html')) {
       const text = await response.text();
       const $ = cheerio.load(text, { decodeEntities: false });
 
-      // helper to rewrite one URL (href/src/action)
       function rewriteAttr(i, el, attrName) {
         const old = $(el).attr(attrName);
         if (!old) return;
@@ -76,24 +68,19 @@ app.get('/proxy', async (req, res) => {
           const resolved = new URL(old, parsed).toString();
           const proxied = '/proxy?url=' + encodeURIComponent(resolved) + '&ref=' + encodeURIComponent(ref);
           $(el).attr(attrName, proxied);
-        } catch (e) {
-          // ignore if can't parse
-        }
+        } catch (e) { }
       }
 
-      // rewrite common attributes
       $('a').each((i, el) => rewriteAttr(i, el, 'href'));
       $('link').each((i, el) => rewriteAttr(i, el, 'href'));
       $('img').each((i, el) => rewriteAttr(i, el, 'src'));
       $('script').each((i, el) => rewriteAttr(i, el, 'src'));
       $('iframe').each((i, el) => rewriteAttr(i, el, 'src'));
       $('form').each((i, el) => {
-        // For form action, set method to GET for safety if missing; rewrite action
         rewriteAttr(i, el, 'action');
         if (!$(el).attr('method')) $(el).attr('method', 'GET');
       });
 
-      // also insert a small banner so you know it's proxied
       $('body').prepend(`<div style="background:#222;color:#fff;padding:8px;font-size:13px;">
         PROXY MODE — sent Referer: ${escapeHtml(ref)} — <a href="/" style="color:#9cf;">open new</a>
       </div>`);
@@ -101,7 +88,6 @@ app.get('/proxy', async (req, res) => {
       res.setHeader('content-type', 'text/html; charset=utf-8');
       return res.send($.html());
     } else {
-      // Non-HTML: stream back the bytes with original content-type
       const buffer = await response.buffer();
       const ct = contentType || mime.getType(parsed.pathname) || 'application/octet-stream';
       res.setHeader('Content-Type', ct);
@@ -113,11 +99,9 @@ app.get('/proxy', async (req, res) => {
   }
 });
 
-// helper escaping
 function escapeHtml(s) {
   if (!s) return '';
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log('Referrer proxy listening on', PORT));
+app.listen(process.env.PORT || 3000);
